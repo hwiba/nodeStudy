@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "pm2 start app.js -i max",
-    "stop" : "pm2 stop all"
+    "stop": "pm2 stop all"
   },
   "dependencies": {
     "body-parser": "~1.13.2",
@@ -12,6 +12,7 @@
     "debug": "~2.2.0",
     "express": "~4.13.1",
     "jade": "~1.11.0",
+    "mongodb": "^2.0.40",
     "morgan": "~1.6.1",
     "serve-favicon": "~2.3.0"
   }
