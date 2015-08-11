@@ -4,8 +4,88 @@ var querystring = require('querystring'); 
 var url = require('url');
 var mongodb = require('mongodb');
 
-var server = new mongodb.Server('localhost', 27017, {});
-var db = new mongodb.Db('mydatabase', server, {w: 1});
+var MongoClient = mongodb.MongoClient;
+
+var server = "mongodb://localhost:27017/memo";
+ 
+function _insertMemo(body, callback) { 
+    body = typeof body === 'string' ? JSON.parse(body) : body;  
+
+    body.author = body.author === undefined ? "park" : body.author;
+    body.memo = body.memo === undefined ? "testMemo" : body.memo;
+
+    console.log(body.author);
+    console.log(body.memo);
+    
+    var memo = { 
+        author: body.author,
+        memo: body.memo,
+          date: new Date() 
+    };  
+
+    MongoClient.connect(server, function(err, db) {
+        if (err) throw err;
+
+        db.collection('memo').save(memo, function(err, saved) {
+            if (err) throw err;
+            console.dir("Successfully saved " + saved + " document!");
+            db.close();
+            callback();
+        })
+    });
+}  
+ 
+function _findMemo(where, callback) { 
+    where = where || {} 
+
+    MongoClient.connect(server, function(err, db) {
+        if (err) throw err;
+        
+        db.collection('memo').find(where).toArray(function (err, docs){
+            console.dir(docs);
+            db.close();
+            callback(null, docs);
+        });
+    });
+}
+
+function _updateMemo(where, body, callback) { 
+    body = typeof body === 'string' ? JSON.parse(body) : body;
+
+    MongoClient.connect(server, function(err, db) {
+        if (err) throw err;
+
+        var operator = {
+            $set : {
+                memo : "update memo",
+                date : new Date()
+            }
+        };
+        
+        db.collection('memo').update(where, operator, function(err, updated) {
+            if (err) throw err;
+            console.dir("Successfully updated " + updated + " document!");
+            db.close();    
+            callback();
+        });
+    });
+}  
+ 
+function _removeMemo(where, callback) { 
+    where = typeof where === undefined ? {author : testAuthor} : where;
+
+    MongoClient.connect(server, function(err, db) {
+        if (err) throw err; 
+
+        db.collection('memo').remove(where, function(err, removed) {
+            if(err) throw err;
+            console.dir("Successfully deleted " + removed + " documents!");
+            db.close();
+            callback();
+        }); 
+    });
+}
+
 
 exports.create = function(req, res, body) { 
     _insertMemo(body, function(error, result) { 
@@ -47,67 +127,3 @@ exports.remove = function(req, res, body) { 
         res.end(); 
     });  
 };   
- 
-function _insertMemo(body, callback) { 
-    body = typeof body === 'string' ? JSON.parse(body) : body;  
-
-    console.log(body.author);
-    console.log(body.memo);
-
-    var memo = { 
-        author: body.author,
-         memo: body.memo,
-         date: new Date() 
-    };  
-    
-    db.open(function(err) {
-     if (err) throw err;
-        db.collection('memo').insert(memo , function(err, inserted){
-            if (err) throw err;
-            console.dir("successfully inserted: " + JSON.stringify(inserted));
-            db.close();
-            callback();
-        });
-    });
-}  
- 
-function _findMemo(where, callback) { 
-    where = where || {} 
-
-    db.open(function(err) {
-        if (err) throw err;
-        console.log("where " + where.toString());
-        db.collection('memo').find(where).toArray(function (err,docs){
-            console.dir(docs);
-            db.close();
-            callback(null, docs);
-        });
-    });
-}  
- 
-function _updateMemo(where, body, callback) { 
-    body = typeof body === 'string' ? JSON.parse(body) : body;
-
-    db.open(function(err) {
-        if (err) throw err;
-        //multi:true에서 오류를 이유로 false로 임시 처리함. 왜?
-        db.collection('memo').update(where, { $set: body }, {multi: false}, function(err, updated) {
-            if (err) throw err;
-            console.dir("Successfully updated " + updated + " document!");
-            db.close();    
-            callback();
-        });
-    });
-}  
- 
-function _removeMemo(where, callback) { 
-    db.open(function(err) {
-        if (err) throw err; 
-        db.collection('memo').remove(where, { multi: true}, function(err, removed) {
-            if(err) throw err;
-            console.dir("Successfully deleted " + removed + " documents!");
-            db.close();
-            callback();
-        }); 
-    });
-}
